@@ -548,8 +548,8 @@ class StockTradingEnv(gym.Env):
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
-        return [seed]
-
+        # return [seed]
+        return [1234]
     def get_sb_env(self):
         e = DummyVecEnv([lambda: self])
         obs = e.reset()
