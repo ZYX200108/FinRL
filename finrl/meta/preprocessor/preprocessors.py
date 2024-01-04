@@ -9,6 +9,8 @@ from stockstats import StockDataFrame as Sdf
 
 from finrl import config
 from finrl.meta.preprocessor.yahoodownloader import YahooDownloader
+import requests
+
 
 
 def load_dataset(*, file_name: str) -> pd.DataFrame:
@@ -133,6 +135,30 @@ class FeatureEngineer:
         # df_full = df_full.fillna(0)
         return df
 
+    def get_earnings_surprise_data(self, ticker):
+        # Placeholder function - replace with actual implementation
+        # Fetch earnings surprise data for the given ticker
+        # Return it as a DataFrame with columns ['tic', 'date', 'earnings_surprise']
+        api_key = 'T4KDXOS5OWY4ZFL6'
+        url = f'https://www.alphavantage.co/query?function=EARNINGS&symbol={ticker}&apikey={api_key}'
+        response = requests.get(url)
+        data = response.json()
+
+        # Check if the earnings data is available
+        if 'quarterlyEarnings' in data:
+            earnings_data = data['quarterlyEarnings']
+            # Convert to DataFrame
+            earnings_df = pd.DataFrame(earnings_data)
+            # Selecting relevant columns
+            earnings_df = earnings_df[['reportedDate', 'surprise']]
+            earnings_df.columns = ['date', 'earnings_surprise']
+            earnings_df['tic'] = ticker
+            return earnings_df
+        else:
+            # Return an empty DataFrame if data is not available
+            return pd.DataFrame(columns=['date', 'earnings_surprise', 'tic'])
+
+
     def add_technical_indicator(self, data):
         """
         calculate technical indicators
@@ -166,7 +192,15 @@ class FeatureEngineer:
             df = df.merge(
                 indicator_df[["tic", "date", indicator]], on=["tic", "date"], how="left"
             )
+
+        # Adding earnings surprise
+        for ticker in unique_ticker:
+            earnings_df = self.get_earnings_surprise_data(ticker)
+            df = df.merge(earnings_df, on=["tic", "date"], how="left")
+
         df = df.sort_values(by=["date", "tic"])
+
+
         return df
         # df = data.set_index(['date','tic']).sort_index()
         # df = df.join(df.groupby(level=0, group_keys=False).apply(lambda x, y: Sdf.retype(x)[y], y=self.tech_indicator_list))
